@@ -7,6 +7,15 @@
 /[Ll]ogs/
 /[Uu]ser[Ss]ettings/
 
+# Carpetas especificas del proyecto
+Howlhund/[Ll]ibrary/
+Howlhund/[Tt]emp/
+Howlhund/[Oo]bj/
+Howlhund/[Bb]uild/
+Howlhund/[Bb]uilds/
+Howlhund/[Ll]ogs/
+Howlhund/[Uu]ser[Ss]ettings/
+
 # Archivos de sistema y IDE
 .vs/
 .idea/
