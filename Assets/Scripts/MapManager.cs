@@ -1,6 +1,5 @@
 using System.Collections.Generic;
 using UnityEngine;
-using System.Linq; // Necesario para lógica de listas
 
 public class MapManager : MonoBehaviour
 {
@@ -8,7 +7,7 @@ public class MapManager : MonoBehaviour
     public GameObject nodePrefab; 
     public Transform mapParent;
     
-    [Range(3, 10)] public int totalFloors = 5; // Cuántos pisos de profundidad
+    [Range(3, 10)] public int totalFloors = 8; // Cuántos pisos de profundidad
     [Range(2, 4)] public int nodesPerFloorMin = 2;
     [Range(2, 5)] public int nodesPerFloorMax = 4;
 
@@ -33,42 +32,81 @@ public class MapManager : MonoBehaviour
     // --- GENERACIÓN DEL MAPA ---
     void GenerateProceduralMap()
     {
-        // 1. Crear los Nodos
         for (int floor = 0; floor < totalFloors; floor++)
         {
             List<MapNode> currentFloorNodes = new List<MapNode>();
             
-            // Regla: Primer y último piso siempre tienen 1 solo nodo
             int nodesCount = (floor == 0 || floor == totalFloors - 1) ? 1 : Random.Range(nodesPerFloorMin, nodesPerFloorMax + 1);
-            
-            // Calculamos ancho para centrar
             float floorWidth = (nodesCount - 1) * xSpacing;
 
             for (int i = 0; i < nodesCount; i++)
             {
-                // Matemáticas para centrar los nodos en X
                 float x = (-floorWidth / 2) + (i * xSpacing);
                 float y = floor * ySpacing;
-
-                // Añadir un poco de desorden (Jitter) para que no sea perfecto
                 if (floor > 0 && floor < totalFloors - 1) x += Random.Range(-0.3f, 0.3f);
 
                 MapNode newNode = CreateNode(i, floor, new Vector3(x, y-5, 0));
+                
+                // --- ASIGNACIÓN DE TIPO ---
+                AssignNodeType(newNode, floor);
+                // -------------------------
+
                 currentFloorNodes.Add(newNode);
             }
             mapStructure.Add(currentFloorNodes);
         }
 
-        // 2. Conectar los Nodos (La lógica inteligente)
         ConnectFloors();
 
-        // 3. Dibujar Líneas
+        // Inicialización Visual
         foreach (var list in mapStructure)
+        {
             foreach (var node in list)
+            {
                 node.ShowConnections();
+                // Forzamos update visual para que se pinten los colores correctos al inicio
+                node.GetComponent<NodeView>().RefreshVisuals();
+            }
+        }
 
-        // 4. Iniciar Juego en el primer nodo (Piso 0, único nodo)
         SetCurrentNode(mapStructure[0][0]);
+    }
+
+    void AssignNodeType(MapNode node, int floor)
+    {
+        // Regla 1: El primer piso siempre es Batalla fácil
+        if (floor == 0)
+        {
+            node.SetType(NodeType.Battle);
+            return;
+        }
+
+        // Regla 2: El último piso es JEFE
+        if (floor == totalFloors - 1)
+        {
+            node.SetType(NodeType.Boss);
+            return;
+        }
+        // Regla 3: A mitad del mapa, forzamos un Minijefe o Tienda para garantizar variedad
+        // (Por ejemplo, en el piso 4 o 5)
+        if (floor == totalFloors / 2)
+        {
+             // 50% Tienda, 50% Minijefe
+             node.SetType(Random.value > 0.5f ? NodeType.Shop : NodeType.MiniBoss);
+             return;
+        }
+
+        // Regla 4: Aleatoriedad ponderada para el resto
+        float randomVal = Random.value; // Retorna entre 0.0 y 1.0
+
+        if (randomVal < 0.05f) 
+            node.SetType(NodeType.Healing);
+        else if (randomVal < 0.10f) 
+            node.SetType(NodeType.Shop);
+        else if (randomVal < 0.15f) 
+            node.SetType(NodeType.MiniBoss);
+        else 
+            node.SetType(NodeType.Battle);
     }
 
     MapNode CreateNode(int xIndex, int yIndex, Vector3 pos)
@@ -106,10 +144,7 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    MapNode GetRandomNode(List<MapNode> list)
-    {
-        return list[Random.Range(0, list.Count)];
-    }
+    MapNode GetRandomNode(List<MapNode> list) => list[Random.Range(0, list.Count)];
 
     void ConnectNodes(MapNode from, MapNode to)
     {
@@ -123,10 +158,7 @@ public class MapManager : MonoBehaviour
 
     // --- LÓGICA DE JUEGO (MOVIMIENTO) ---
 
-    void OnNodeSelected(MapNode selectedNode)
-    {
-        SetCurrentNode(selectedNode);
-    }
+    void OnNodeSelected(MapNode selectedNode) => SetCurrentNode(selectedNode);
 
     void SetCurrentNode(MapNode newNode)
     {

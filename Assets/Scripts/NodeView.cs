@@ -8,6 +8,13 @@ public class NodeView : MonoBehaviour
     private MapNode mapNode;
     private SpriteRenderer sr;
 
+    [Header("Colores por Tipo")]
+    public Color colorBattle = Color.white;
+    public Color colorHealing = Color.blue;   // Curación
+    public Color colorShop = new Color(1f, 0.4f, 0.7f); // Rosa
+    public Color colorMiniBoss = new Color(0.6f, 0f, 1f); // Morado
+    public Color colorBoss = Color.red;
+
     [Header("Paleta de Colores")]
     public Color colorLocked = new Color(0.5f, 0.5f, 0.5f);
     public Color colorAttainable = Color.white;
@@ -24,17 +31,45 @@ public class NodeView : MonoBehaviour
         sr = GetComponent<SpriteRenderer>();
     }
 
-    // Método público para refrescar el color cuando el Manager cambie el estado
     public void RefreshVisuals()
     {
-        transform.localScale = Vector3.one; // Resetear escala
-
-        switch (mapNode.currentState)
+        transform.localScale = Vector3.one;
+        // 1. Si el jugador está aquí, es VERDE
+        if (mapNode.currentState == NodeState.Active)
         {
-            case NodeState.Locked: sr.color = colorLocked; break;
-            case NodeState.Attainable: sr.color = colorAttainable; break;
-            case NodeState.Visited: sr.color = colorVisited; break;
-            case NodeState.Active: sr.color = colorActive; break;
+            sr.color = colorActive;
+            return;
+        }
+        // 2. Si ya lo visitamos, es GRIS (apagado)
+        if (mapNode.currentState == NodeState.Visited)
+        {
+            sr.color = colorVisited;
+            return;
+        }
+        // 3. Si está Lejos (Locked) o Disponible (Attainable), 
+        // mostramos su color de TIPO para que el jugador sepa qué es.
+        Color typeColor = GetColorByType(mapNode.nodeType);
+        if (mapNode.currentState == NodeState.Locked)
+        {
+            // Truco: Lo mostramos un poco más oscuro (transparente) si está lejos
+            typeColor.a = 0.5f; 
+        }
+        else // Attainable
+        {
+            typeColor.a = 1.0f; // Color brillante y sólido
+        }
+        sr.color = typeColor;
+    }
+
+    Color GetColorByType(NodeType type)
+    {
+        switch (type)
+        {
+            case NodeType.Healing: return colorHealing;
+            case NodeType.Shop: return colorShop;
+            case NodeType.MiniBoss: return colorMiniBoss;
+            case NodeType.Boss: return colorBoss;
+            default: return colorBattle;
         }
     }
 
@@ -48,14 +83,6 @@ public class NodeView : MonoBehaviour
         }
     }
 
-    void OnMouseExit()
-    {
-        // Al salir, volvemos al color que nos corresponde según el estado
-        RefreshVisuals();
-    }
-
-    void OnMouseDown()
-    {
-        mapNode.ClickNode();
-    }
+    void OnMouseExit() => RefreshVisuals();
+    void OnMouseDown() => mapNode.ClickNode();
 }

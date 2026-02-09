@@ -2,6 +2,15 @@ using System.Collections.Generic;
 using UnityEngine;
 using System;
 
+public enum NodeType
+{
+    Battle,     // Enemigo normal (Gris/Blanco)
+    Healing,    // Curación (Azul)
+    Shop,       // Tienda (Rosa)
+    MiniBoss,   // Minijefe (Morado)
+    Boss        // Jefe Final (Rojo)
+}
+
 public enum NodeState
 {
     Locked,     // No interactuable (Gris)
@@ -13,10 +22,11 @@ public enum NodeState
 public class MapNode : MonoBehaviour
 {
     [Header("Configuración Visual")]
-    public GameObject linePrefab; // ¡Arrastra tu Prefab de Línea aquí!
+    public GameObject linePrefab; 
 
     [Header("Datos")]
     public string nodeID;
+    public NodeType nodeType; 
     public NodeState currentState = NodeState.Locked;
     
     // Coordenadas en la grilla (Piso, Índice)
@@ -41,6 +51,12 @@ public class MapNode : MonoBehaviour
     public void ChangeState(NodeState newState)
     {
         currentState = newState;
+    }
+
+    public void SetType(NodeType type)
+    {
+        nodeType = type;
+        name += $"_{type}"; // Ayuda a verlos en la jerarquía
     }
 
     // --- DIBUJO DE LÍNEAS ---
