@@ -11,6 +11,7 @@ public class UIManager : MonoBehaviour
     public TextMeshProUGUI healthText;
     public TextMeshProUGUI blockText;
     public TextMeshProUGUI energyText;
+    public TextMeshProUGUI actionsText;
     public Slider playerHealthBar;
 
     [Header("Panel del Enemigo")]
@@ -23,8 +24,10 @@ public class UIManager : MonoBehaviour
 
     [Header("Botones")]
     public Button endTurnButton;
+    public Button confirmCardButton;
 
     private List<GameObject> cardObjects = new List<GameObject>();
+    private int lastHandCount = -1;
 
     void Awake()
     {
@@ -35,15 +38,31 @@ public class UIManager : MonoBehaviour
     void Start()
     {
         endTurnButton.onClick.AddListener(OnEndTurnPressed);
-        UpdateUI();
+        confirmCardButton.onClick.AddListener(OnConfirmCardPressed);
+        confirmCardButton.gameObject.SetActive(false);
     }
 
     void Update()
     {
-        UpdateUI();
+        UpdateStatsUI();
+
+        // Mostrar botón confirmar solo si hay carta seleccionada
+        if (confirmCardButton != null)
+        {
+            confirmCardButton.gameObject.SetActive(
+                CombatManager.Instance.GetSelectedCount() > 0
+            );
+        }
+
+        int currentHandCount = CombatManager.Instance.hand.Count;
+        if (currentHandCount != lastHandCount)
+        {
+            lastHandCount = currentHandCount;
+            RefreshHandUI();
+        }
     }
 
-    void UpdateUI()
+    void UpdateStatsUI()
     {
         if (Player.Instance != null)
         {
@@ -60,6 +79,9 @@ public class UIManager : MonoBehaviour
         if (CombatManager.Instance != null)
         {
             energyText.text = $"Energía: {CombatManager.Instance.currentEnergy}/{CombatManager.Instance.maxEnergy}";
+
+            if (actionsText != null)
+                actionsText.text = $"Acciones: {CombatManager.Instance.playerActionsLeft}/{CombatManager.Instance.maxPlayerActions}";
         }
 
         Enemy enemy = FindFirstObjectByType<Enemy>();
@@ -71,11 +93,9 @@ public class UIManager : MonoBehaviour
             if (enemyHealthText != null)
                 enemyHealthText.text = $"{enemy.currentHealth}/{enemy.maxHealth}";
         }
-
-        UpdateHandUI();
     }
 
-    void UpdateHandUI()
+    public void RefreshHandUI()
     {
         foreach (GameObject obj in cardObjects)
             Destroy(obj);
@@ -86,25 +106,13 @@ public class UIManager : MonoBehaviour
             GameObject cardObj = Instantiate(cardPrefab, handContainer);
             Card card = cardObj.GetComponent<Card>();
             card.InitializeCard(cardData);
-
-            Button btn = cardObj.GetComponent<Button>();
-            if (btn == null)
-                btn = cardObj.AddComponent<Button>();
-
-            CardData capturedCard = cardData;
-            btn.onClick.AddListener(() => OnCardClicked(capturedCard));
-
             cardObjects.Add(cardObj);
         }
     }
 
-    void OnCardClicked(CardData cardData)
+    void OnConfirmCardPressed()
     {
-        bool played = CombatManager.Instance.PlayCard(cardData);
-        if (played)
-        {
-            Debug.Log($"Carta jugada: {cardData.cardName}");
-        }
+        CombatManager.Instance.ConfirmSelectedCard();
     }
 
     void OnEndTurnPressed()

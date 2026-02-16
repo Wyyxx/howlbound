@@ -1,6 +1,5 @@
-using System.Collections.Generic;
-using System.Xml.Linq;
 using UnityEngine;
+using System.Collections.Generic;
 
 public class CombatManager : MonoBehaviour
 {
@@ -9,15 +8,18 @@ public class CombatManager : MonoBehaviour
     [Header("Configuración")]
     public int maxEnergy = 3;
     public int handSize = 5;
+    public int maxPlayerActions = 3;
 
     [Header("Estado Actual")]
     public int currentEnergy;
+    public int playerActionsLeft;
     public bool isPlayerTurn = false;
 
     [Header("Referencias")]
     public List<CardData> deck = new List<CardData>();
     public List<CardData> hand = new List<CardData>();
     public List<CardData> discardPile = new List<CardData>();
+    public List<CardData> selectedCards = new List<CardData>();
 
     private List<CardData> drawPile = new List<CardData>();
 
@@ -35,7 +37,6 @@ public class CombatManager : MonoBehaviour
 
     void InitializeDeck()
     {
-        // Copiar el mazo al pile de robo y barajarlo
         drawPile = new List<CardData>(deck);
         ShuffleDeck(drawPile);
         Debug.Log($"Mazo inicializado con {drawPile.Count} cartas");
@@ -56,23 +57,20 @@ public class CombatManager : MonoBehaviour
     {
         isPlayerTurn = true;
         currentEnergy = maxEnergy;
+        playerActionsLeft = maxPlayerActions;
         Player.Instance.currentBlock = 0;
+        selectedCards.Clear();
         DrawCards(handSize);
-        Debug.Log("--- Turno del Jugador ---");
+        Debug.Log($"--- Turno del Jugador | Acciones: {playerActionsLeft} ---");
     }
 
     public void DrawCards(int amount)
     {
         for (int i = 0; i < amount; i++)
         {
-            // Si no hay cartas en el pile, barajar el descarte
             if (drawPile.Count == 0)
             {
-                if (discardPile.Count == 0)
-                {
-                    Debug.Log("No hay mas cartas!");
-                    return;
-                }
+                if (discardPile.Count == 0) return;
                 drawPile = new List<CardData>(discardPile);
                 discardPile.Clear();
                 ShuffleDeck(drawPile);
@@ -82,31 +80,66 @@ public class CombatManager : MonoBehaviour
             CardData card = drawPile[0];
             drawPile.RemoveAt(0);
             hand.Add(card);
-            Debug.Log($"Robaste: {card.cardName}");
         }
     }
 
-    public bool PlayCard(CardData card)
+    public void SelectCard(CardData card)
     {
-        if (!isPlayerTurn) return false;
-        if (!hand.Contains(card)) return false;
-        if (currentEnergy < card.energyCost)
+        if (!selectedCards.Contains(card))
         {
-            Debug.Log("No tienes suficiente energía!");
-            return false;
+            selectedCards.Add(card);
+            currentEnergy -= card.energyCost;
+            Debug.Log($"Carta seleccionada: {card.cardName}");
+        }
+    }
+
+    public void DeselectCard(CardData card)
+    {
+        if (selectedCards.Contains(card))
+        {
+            selectedCards.Remove(card);
+            currentEnergy += card.energyCost;
+            Debug.Log($"Carta deseleccionada: {card.cardName}");
+        }
+    }
+
+    public int GetSelectedCount()
+    {
+        return selectedCards.Count;
+    }
+
+    public void ConfirmSelectedCard()
+    {
+        if (selectedCards.Count == 0)
+        {
+            Debug.Log("No hay carta seleccionada!");
+            return;
         }
 
-        // Gastar energía
-        currentEnergy -= card.energyCost;
+        CardData card = selectedCards[0];
 
-        // Aplicar efectos
+        // Aplicar efecto
         ApplyCardEffect(card);
 
-        // Mover carta al descarte
+        // Sacar de la mano y descartar
         hand.Remove(card);
         discardPile.Add(card);
+        selectedCards.Clear();
 
-        return true;
+        // Restar acción
+        playerActionsLeft--;
+
+        // Robar carta nueva para reemplazar
+        DrawCards(1);
+
+        Debug.Log($"Acción usada! Acciones restantes: {playerActionsLeft}");
+
+        // Si se acabaron las acciones, terminar turno automáticamente
+        if (playerActionsLeft <= 0)
+        {
+            Debug.Log("Sin acciones! Turno del enemigo.");
+            EndPlayerTurn();
+        }
     }
 
     void ApplyCardEffect(CardData card)
@@ -116,13 +149,13 @@ public class CombatManager : MonoBehaviour
         if (card.damageAmount > 0 && enemy != null)
         {
             enemy.TakeDamage(card.damageAmount);
-            Debug.Log($"Causaste {card.damageAmount} de daño!");
+            Debug.Log($"{card.cardName}: {card.damageAmount} daño!");
         }
 
         if (card.blockAmount > 0)
         {
             Player.Instance.GainBlock(card.blockAmount);
-            Debug.Log($"Ganaste {card.blockAmount} de bloqueo!");
+            Debug.Log($"{card.cardName}: {card.blockAmount} bloqueo!");
         }
 
         if (card.drawAmount > 0)
@@ -136,6 +169,7 @@ public class CombatManager : MonoBehaviour
         if (!isPlayerTurn) return;
 
         isPlayerTurn = false;
+        selectedCards.Clear();
 
         // Descartar mano
         discardPile.AddRange(hand);
