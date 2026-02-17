@@ -88,4 +88,15 @@ public class MapNode : MonoBehaviour
             Debug.Log($"Nodo {name} clicado, pero está {currentState}");
         }
     }
+
+    public void ShowLineTo(MapNode target)
+    {
+        if (linePrefab == null) return;
+
+        GameObject lineObj = Instantiate(linePrefab, transform.position, Quaternion.identity, transform);
+        LineRenderer lr = lineObj.GetComponent<LineRenderer>();
+        
+        lr.SetPosition(0, transform.position);
+        lr.SetPosition(1, target.transform.position);
+    }
 }

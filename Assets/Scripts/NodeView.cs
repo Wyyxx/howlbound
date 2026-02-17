@@ -83,6 +83,14 @@ public class NodeView : MonoBehaviour
         }
     }
 
+    void OnMouseOver()
+    {
+        if (Input.GetMouseButtonDown(1)) 
+        {
+            MapManager.Instance.HandleRightClick(mapNode);
+        }
+    }
+
     void OnMouseExit() => RefreshVisuals();
     void OnMouseDown() => mapNode.ClickNode();
 }

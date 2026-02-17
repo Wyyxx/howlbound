@@ -1,9 +1,12 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
+
 
 public class MapManager : MonoBehaviour
 {
     [Header("Configuración de Mapa")]
+    public static MapManager Instance;
     public GameObject nodePrefab; 
     public Transform mapParent;
     
@@ -21,6 +24,14 @@ public class MapManager : MonoBehaviour
     // Lista de Listas: Piso 0 -> [NodoA], Piso 1 -> [NodoB, NodoC], etc.
     private List<List<MapNode>> mapStructure = new List<List<MapNode>>();
 
+    [Header("Editor de Conexiones")]
+    public MapNode pendingConnectionNode; // Aquí guardamos el primer nodo seleccionado
+
+    void Awake()
+    {
+        Instance = this;
+    }
+
     private void OnEnable() => MapNode.OnNodeClicked += OnNodeSelected;
     private void OnDisable() => MapNode.OnNodeClicked -= OnNodeSelected;
 
@@ -36,14 +47,14 @@ public class MapManager : MonoBehaviour
         {
             List<MapNode> currentFloorNodes = new List<MapNode>();
             
-            int nodesCount = (floor == 0 || floor == totalFloors - 1) ? 1 : Random.Range(nodesPerFloorMin, nodesPerFloorMax + 1);
+            int nodesCount = (floor == 0 || floor == totalFloors - 1) ? 1 : UnityEngine.Random.Range(nodesPerFloorMin, nodesPerFloorMax + 1);
             float floorWidth = (nodesCount - 1) * xSpacing;
 
             for (int i = 0; i < nodesCount; i++)
             {
                 float x = (-floorWidth / 2) + (i * xSpacing);
                 float y = floor * ySpacing;
-                if (floor > 0 && floor < totalFloors - 1) x += Random.Range(-0.3f, 0.3f);
+                if (floor > 0 && floor < totalFloors - 1) x += UnityEngine.Random.Range(-0.3f, 0.3f);
 
                 MapNode newNode = CreateNode(i, floor, new Vector3(x, y-5, 0));
                 
@@ -92,12 +103,12 @@ public class MapManager : MonoBehaviour
         if (floor == totalFloors / 2)
         {
              // 50% Tienda, 50% Minijefe
-             node.SetType(Random.value > 0.5f ? NodeType.Shop : NodeType.MiniBoss);
+             node.SetType(UnityEngine.Random.value > 0.5f ? NodeType.Shop : NodeType.MiniBoss);
              return;
         }
 
         // Regla 4: Aleatoriedad ponderada para el resto
-        float randomVal = Random.value; // Retorna entre 0.0 y 1.0
+        float randomVal = UnityEngine.Random.value; // Retorna entre 0.0 y 1.0
 
         if (randomVal < 0.05f) 
             node.SetType(NodeType.Healing);
@@ -144,7 +155,7 @@ public class MapManager : MonoBehaviour
         }
     }
 
-    MapNode GetRandomNode(List<MapNode> list) => list[Random.Range(0, list.Count)];
+    MapNode GetRandomNode(List<MapNode> list) => list[UnityEngine.Random.Range(0, list.Count)];
 
     void ConnectNodes(MapNode from, MapNode to)
     {
@@ -193,5 +204,66 @@ public class MapManager : MonoBehaviour
             neighbor.ChangeState(NodeState.Attainable);
             neighbor.GetComponent<NodeView>().RefreshVisuals();
         }
+    }
+
+    public void RegenerateMap()
+    {
+        Console.WriteLine("Regenerando mapa...");
+        ClearMap();             // 1. Borrar lo viejo
+        GenerateProceduralMap(); // 2. Crear lo nuevo
+    }
+
+    // Función de limpieza
+    void ClearMap()
+    {
+        // Recorremos nuestra lista de listas para destruir los objetos físicos
+        foreach (var floor in mapStructure)
+        {
+            foreach (var node in floor)
+            {
+                if (node != null)
+                {
+                    // Al destruir el nodo, se destruyen también las líneas (porque son hijas)
+                    Destroy(node.gameObject); 
+                }
+            }
+        }
+
+        // Limpiamos la lista lógica y reseteamos variables
+        mapStructure.Clear();
+        currentNode = null;
+    }
+
+    public void HandleRightClick(MapNode targetNode)
+    {
+        // 1. Seguridad: Si el juego no ha empezado o es el mismo nodo, no hacemos nada
+        if (currentNode == null || targetNode == currentNode) return;
+
+        // 2. Evitar duplicados: Si ya existe la conexión, nos salimos
+        if (currentNode.outgoingNodes.Contains(targetNode))
+        {
+            Debug.Log("¡Ya existe una conexión hacia ese nodo!");
+            return;
+        }
+
+        // 3. Conexión Lógica (Datos)
+        ConnectNodes(currentNode, targetNode);
+
+        // 4. Conexión Visual (Línea)
+        // Dibujamos la línea desde el JUGADOR hacia el OBJETIVO
+        currentNode.ShowLineTo(targetNode); 
+
+        // 5. ACTUALIZACIÓN DE ESTADO (El arreglo del bug)
+        // Como acabamos de crear un camino desde donde estamos,
+        // el destino se vuelve inmediatamente accesible.
+        if (targetNode.currentState != NodeState.Visited)
+        {
+            targetNode.ChangeState(NodeState.Attainable);
+            
+            // Forzamos al NodeView a repintarse de blanco/amarillo
+            targetNode.GetComponent<NodeView>().RefreshVisuals();
+        }
+
+        Debug.Log($"<color=cyan>Puente creado: {currentNode.name} -> {targetNode.name}</color>");
     }
 }
