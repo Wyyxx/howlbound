@@ -83,6 +83,15 @@ public class EnemySkin : MonoBehaviour
                 break;
         }
 
+        Enemy enemy = GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.enemyName = activeSkinName;
+            // Actualiza el texto del nombre si ya existe
+            if (enemy.localNameText != null)
+                enemy.localNameText.text = activeSkinName;
+        }
+
         // Filter out any null sprites from the arrays
         currentIdleFrames = FilterNullSprites(currentIdleFrames);
         currentHitFrames = FilterNullSprites(currentHitFrames);

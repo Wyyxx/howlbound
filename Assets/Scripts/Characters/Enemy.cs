@@ -10,6 +10,7 @@ public class Enemy : Character
     [Header("UI Local del Enemigo")]
     public Slider localHealthBar;
     public TextMeshProUGUI localHealthText;
+    public TextMeshProUGUI localNameText;
 
     void Start()
     {
@@ -22,7 +23,10 @@ public class Enemy : Character
             localHealthBar.maxValue = maxHealth;
             localHealthBar.value = currentHealth;
         }
-        
+
+        if (localNameText != null)
+            localNameText.text = enemyName;
+
         UpdateHealthUI();
     }
 
@@ -87,4 +91,6 @@ public class Enemy : Character
         Debug.Log($"{enemyName} murio!");
         Destroy(gameObject);
     }
+
+
 }
