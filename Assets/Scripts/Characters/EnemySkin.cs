@@ -43,7 +43,10 @@ public class EnemySkin : MonoBehaviour
     {
         sr = GetComponent<SpriteRenderer>();
         // Hide the sprite until the skin is assigned to prevent the default sprite from flashing
-        sr.sprite = null;
+        //sr.sprite = null;
+
+        //Cambio de codigo parpadeo
+        sr.enabled = false;
 
         // Flip to face left
         sr.flipX = true;
@@ -80,6 +83,15 @@ public class EnemySkin : MonoBehaviour
                 break;
         }
 
+        Enemy enemy = GetComponent<Enemy>();
+        if (enemy != null)
+        {
+            enemy.enemyName = activeSkinName;
+            // Actualiza el texto del nombre si ya existe
+            if (enemy.localNameText != null)
+                enemy.localNameText.text = activeSkinName;
+        }
+
         // Filter out any null sprites from the arrays
         currentIdleFrames = FilterNullSprites(currentIdleFrames);
         currentHitFrames = FilterNullSprites(currentHitFrames);
@@ -88,6 +100,8 @@ public class EnemySkin : MonoBehaviour
         if (currentIdleFrames != null && currentIdleFrames.Length > 0)
         {
             sr.sprite = currentIdleFrames[0];
+            //agregado de codigo por parpadeo
+            sr.enabled = true;
             skinReady = true;
             Debug.Log($"EnemySkin: {activeSkinName} asignado con {currentIdleFrames.Length} frames de idle");
         }
@@ -107,9 +121,19 @@ public class EnemySkin : MonoBehaviour
         List<Sprite> filtered = new List<Sprite>();
         foreach (Sprite s in sprites)
         {
-            if (s != null) filtered.Add(s);
+            // Filtra nulls Y sprites con rect vacío
+            if (s != null && s.rect.width > 0 && s.rect.height > 0)
+            {
+                filtered.Add(s);
+            }
         }
-        return filtered.Count > 0 ? filtered.ToArray() : null;
+
+        if (filtered.Count > 0)
+        {
+            Debug.Log($"Sprites válidos: {filtered.Count} de {sprites.Length}");
+            return filtered.ToArray();
+        }
+        return null;
     }
 
     void Update()
@@ -123,9 +147,22 @@ public class EnemySkin : MonoBehaviour
         if (frameTimer >= frameInterval)
         {
             // Only advance one frame per check, reset timer cleanly
-            frameTimer = 0f;
+            //cambio de codigo parpadeo
+            //frameTimer = 0f;
+            frameTimer -= frameInterval;
             currentFrame = (currentFrame + 1) % currentIdleFrames.Length;
-            sr.sprite = currentIdleFrames[currentFrame];
+            Sprite nextSprite = currentIdleFrames[currentFrame];
+            if (nextSprite != null)
+            {
+                sr.sprite = nextSprite;
+            }
+            else
+            {
+                // Frame vacío encontrado, regresa al frame 0
+                currentFrame = 0;
+                sr.sprite = currentIdleFrames[0];
+                Debug.LogWarning($"Frame vacío detectado en índice {currentFrame}, regresando a frame 0");
+            }
         }
     }
 
@@ -151,6 +188,8 @@ public class EnemySkin : MonoBehaviour
             float hitFrameDuration = hitFlashDuration;
             foreach (Sprite hitSprite in currentHitFrames)
             {
+                //cambios de codigo parpadeo
+                if (!gameObject.activeInHierarchy) yield break;
                 sr.sprite = hitSprite;
                 yield return new WaitForSeconds(hitFrameDuration);
             }
@@ -159,6 +198,9 @@ public class EnemySkin : MonoBehaviour
         // Flash red + shake effect
         for (int i = 0; i < hitFlashCount; i++)
         {
+            //cambio de codigo parpadeo
+            if (!gameObject.activeInHierarchy) yield break;
+
             // Flash to hit color
             sr.color = hitColor;
 

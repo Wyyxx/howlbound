@@ -171,7 +171,7 @@ public class CombatManager : MonoBehaviour
         {
             Debug.LogError("No se encontró el MapManager. ¿Iniciaste el juego desde la escena del mapa?");
             // Respaldo de emergencia en caso de que pruebes la escena de combate directamente:
-            SceneManager.LoadScene("MapScene"); 
+            SceneManager.LoadScene("Mapa"); 
         }
     }
 
