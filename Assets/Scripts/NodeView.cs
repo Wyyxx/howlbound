@@ -8,6 +8,14 @@ public class NodeView : MonoBehaviour
     private MapNode mapNode;
     private SpriteRenderer sr;
 
+    [Header("Sprites por Tipo")]
+    public Sprite spriteBattle;
+    public Sprite spriteHealing;
+    public Sprite spriteShop;
+    public Sprite spriteMiniBoss;
+    public Sprite spriteBoss;
+    public Sprite spriteDefault; // Fallback si no hay sprite asignado
+
     [Header("Colores por Tipo")]
     public Color colorBattle = Color.white;
     public Color colorHealing = Color.blue;   // Curación
@@ -34,6 +42,14 @@ public class NodeView : MonoBehaviour
     public void RefreshVisuals()
     {
         transform.localScale = Vector3.one;
+
+        // Asignar sprite según el tipo de nodo
+        Sprite typeSprite = GetSpriteByType(mapNode.nodeType);
+        if (typeSprite != null)
+        {
+            sr.sprite = typeSprite;
+        }
+
         // 1. Si el jugador está aquí, es VERDE
         if (mapNode.currentState == NodeState.Active)
         {
@@ -59,6 +75,19 @@ public class NodeView : MonoBehaviour
             typeColor.a = 1.0f; // Color brillante y sólido
         }
         sr.color = typeColor;
+    }
+
+    Sprite GetSpriteByType(NodeType type)
+    {
+        switch (type)
+        {
+            case NodeType.Battle: return spriteBattle;
+            case NodeType.Healing: return spriteHealing;
+            case NodeType.Shop: return spriteShop;
+            case NodeType.MiniBoss: return spriteMiniBoss;
+            case NodeType.Boss: return spriteBoss;
+            default: return spriteDefault;
+        }
     }
 
     Color GetColorByType(NodeType type)
