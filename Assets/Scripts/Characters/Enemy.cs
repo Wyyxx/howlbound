@@ -5,6 +5,7 @@ public class Enemy : Character
 {
     [Header("Enemy Info")]
     public string enemyName;
+    public bool isBoss = false;
     public EnemyIntention currentIntention;
 
     [Header("UI Local del Enemigo")]
