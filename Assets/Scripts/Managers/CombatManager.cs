@@ -379,5 +379,7 @@ public class CombatManager : MonoBehaviour
         {
             DeathScreenManager.Instance.ShowDeathScreen();
         }
+
     }
+
 }
